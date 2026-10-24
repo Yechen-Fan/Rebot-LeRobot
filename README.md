@@ -1,6 +1,5 @@
 <div align="center">
   <h1>Rebot-LeRobot</h1>
-  <p>B601 DM single-arm and bimanual robot learning with LeRobot</p>
 </div>
 
 # 📖 Introduction
