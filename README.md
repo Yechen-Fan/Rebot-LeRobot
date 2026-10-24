@@ -24,7 +24,7 @@ The project follows the LeRobot command-line workflow, from teleoperation and de
 # 🖥️ Demos
 
 <p align="center">
-  <img src="doc/demo.gif" alt="Demo">
+  <img src="doc/demo.gif?v=20261024-v5" alt="Demo">
 </p>
 
 # 🛠️ Installation
