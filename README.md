@@ -26,15 +26,6 @@ The project follows the LeRobot command-line workflow, from teleoperation and de
   <img src="doc/demo.gif?v=20261024-v5" alt="Demo">
 </p>
 
-# 🛠️ Installation
-
-Activate your Python environment, then run:
-
-```bash
-cd Rebot-LeRobot
-bash scripts/install_rebot.sh
-```
-
 # 🧩 Hardware CAD Files
 
 The [`hardware/`](hardware/) directory contains STEP CAD models for the gripper, camera mount, and FlexiTac components:
@@ -45,6 +36,15 @@ The [`hardware/`](hardware/) directory contains STEP CAD models for the gripper,
 | [`Soft_Gripper_Mount.step`](hardware/Soft_Gripper_Mount.step) | Soft gripper mount |
 | [`D415_Adjustable_Camera_Mount.step`](hardware/D415_Adjustable_Camera_Mount.step) | Adjustable mount for the D415 camera |
 | [`FlexiTac/`](hardware/FlexiTac/) | Left/right housings (`Box_L`, `Box_R`), endcaps (`Endcap_L`, `Endcap_R`), and fastener models (`Bolt_x2`, `Nut_x2`) |
+
+# 🛠️ Installation
+
+Activate your Python environment, then run:
+
+```bash
+cd Rebot-LeRobot
+bash scripts/install_rebot.sh
+```
 
 # 🕹️ Teleoperation
 
