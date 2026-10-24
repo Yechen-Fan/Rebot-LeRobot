@@ -16,12 +16,16 @@ The project follows the LeRobot command-line workflow, from teleoperation and de
 
 | Category | Supported Options |
 | --- | --- |
-| Hardware | B601 DM arm, Soft gripper, OpenCV cameras, FlexiTac |
 | Robot types | `seeed_b601_dm_follower`, `bi_seeed_b601_dm_follower` |
 | Teleoperation backends | `quest3`, `switch_joycon` |
 | Training recipes | ACT, Diffusion Policy |
 | Policy inputs | RGB + robot state; RGB + robot state + tactile |
 
+# 🖥️ Demos
+
+<p align="center">
+  <img src="doc/demo.gif" alt="Demo">
+</p>
 
 # 🛠️ Installation
 
@@ -29,8 +33,19 @@ Activate your Python environment, then run:
 
 ```bash
 cd Rebot_LeRobot
-bash lerobot/install_rebot.sh
+bash scripts/install_rebot.sh
 ```
+
+# 🧩 Hardware CAD Files
+
+The [`hardware/`](hardware/) directory contains STEP CAD models for the gripper, camera mount, and FlexiTac components:
+
+| File / Directory | Description |
+| --- | --- |
+| [`Soft_Gripper_Finger.step`](hardware/Soft_Gripper_Finger.step) | Soft gripper finger |
+| [`Soft_Gripper_Mount.step`](hardware/Soft_Gripper_Mount.step) | Soft gripper mount |
+| [`D415_Adjustable_Camera_Mount.step`](hardware/D415_Adjustable_Camera_Mount.step) | Adjustable mount for the D415 camera |
+| [`FlexiTac/`](hardware/FlexiTac/) | Left/right housings (`Box_L`, `Box_R`), endcaps (`Endcap_L`, `Endcap_R`), and fastener models (`Bolt_x2`, `Nut_x2`) |
 
 # 🕹️ Teleoperation
 
@@ -210,13 +225,18 @@ lerobot-record --config_path=lerobot/configs/eval_act_bi_flexitac.yaml \
 ```text
 Rebot_LeRobot/
 ├── README.md
+├── hardware/                       # STEP CAD models for mechanical parts
+│   ├── D415_Adjustable_Camera_Mount.step
+│   ├── Soft_Gripper_Finger.step
+│   ├── Soft_Gripper_Mount.step
+│   └── FlexiTac/                   # Housings, endcaps, and fastener models
 ├── scripts/
+│   ├── install_rebot.sh            # Installation entry point
 │   ├── replay_data.sh               # Replay entry point
 │   ├── replay_dataset.py            # Joint-trajectory replay
 │   └── test_flexitac.py             # Standalone tactile test
 ├── lerobot/
 │   ├── configs/                    # Teleoperation, collection, training, inference
-│   ├── install_rebot.sh            # Installation entry point
 │   ├── pyproject.toml              # Package dependencies and CLI entry points
 │   ├── setup.py
 │   ├── LICENSE
@@ -229,8 +249,8 @@ Rebot_LeRobot/
 
 # 📄 License
 
-The LeRobot code is distributed under [Apache-2.0](lerobot/LICENSE). The native components retain their own licenses: [rebotarm_control_dm](lerobot/native/rebotarm_control_dm/LICENSE) and [motorbridge](lerobot/native/motorbridge/LICENSE). Hardware, firmware, and bundled third-party dependencies remain subject to their respective terms.
+The LeRobot code is distributed under [Apache-2.0](lerobot/LICENSE).
 
 # 🙏 Acknowledgements
 
-This project builds on [Hugging Face LeRobot](https://github.com/huggingface/lerobot) and integrates the B601 DM control backend, motorbridge, Quest 3, Switch Joy-Con, and FlexiTac components. We thank the authors and maintainers of these projects for their contributions.
+This project builds on [LeRobot](https://github.com/huggingface/lerobot) and integrates the B601 DM control backend, motorbridge, Quest 3, Switch Joy-Con, and FlexiTac components. We thank the authors and maintainers of these projects for their contributions.

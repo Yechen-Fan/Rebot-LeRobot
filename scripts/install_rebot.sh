@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../lerobot" && pwd)"
 PY="${PY:-python}"
 
 if [[ ! -x "$(command -v "$PY")" ]]; then
