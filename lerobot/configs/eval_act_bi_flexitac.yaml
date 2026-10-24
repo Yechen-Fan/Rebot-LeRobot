@@ -1,0 +1,46 @@
+robot:
+  type: bi_seeed_b601_dm_follower
+  left_port: /dev/serial/by-path/pci-0000:0b:00.3-usb-0:2.4:1.0
+  right_port: /dev/serial/by-path/pci-0000:0b:00.3-usb-0:2.1:1.0
+  id: bi_rebot_b601_dm_flexitac
+  can_adapter: damiao
+  action_mode: cartesian
+  control_mode: pos_vel
+  control_gripper: true
+  enable_observation_joint_pos: true
+  left_gripper_type: rebotarm_b601
+  right_gripper_type: rebotarm_b601
+  flexitac_left_inner_port: /dev/serial/by-id/REPLACE_FLEXITAC_LEFT_INNER
+  flexitac_left_outer_port: /dev/serial/by-id/REPLACE_FLEXITAC_LEFT_OUTER
+  flexitac_right_inner_port: /dev/serial/by-id/REPLACE_FLEXITAC_RIGHT_INNER
+  flexitac_right_outer_port: /dev/serial/by-id/REPLACE_FLEXITAC_RIGHT_OUTER
+  flexitac_calibration_mean_min: 0.0
+  flexitac_calibration_mean_max: 200.0
+  cameras:
+    global: {type: opencv, index_or_path: 4, width: 640, height: 480, fps: 30, fourcc: MJPG}
+    left_wrist: {type: opencv, index_or_path: 8, width: 640, height: 480, fps: 30, fourcc: MJPG}
+    right_wrist: {type: opencv, index_or_path: 6, width: 640, height: 480, fps: 30, fourcc: MJPG}
+
+dataset:
+  repo_id: yechen/eval_b601_flexitac_act
+  root: data/eval_b601_flexitac_act
+  single_task: Replace with the task description.
+  num_episodes: 10
+  fps: 30
+  video: true
+  vcodec: h264
+  push_to_hub: false
+  streaming_encoding: true
+
+policy:
+  type: act
+  pretrained_path: outputs/act_b601_flexitac/checkpoints/last/pretrained_model
+  device: cuda
+
+display_data: false
+play_sounds: false
+resume: false
+manual_episode_control: true
+
+# Inference does not save a dataset unless explicitly enabled.
+recording_enabled: false

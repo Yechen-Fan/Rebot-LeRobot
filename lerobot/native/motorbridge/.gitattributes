@@ -1,0 +1,5 @@
+* text=auto eol=lf
+
+*.rs linguist-language=Rust
+*.mdx linguist-detectable=false
+*.md linguist-detectable=false

@@ -1,0 +1,169 @@
+{
+  "schema": 1,
+  "package": "motorbridge",
+  "version": "0.4.6",
+  "purpose": "Canonical API surface used to keep ABI, Python, C++ and docs aligned.",
+  "abi": {
+    "metadata": [
+      "motor_last_error_message",
+      "motor_abi_version",
+      "motor_abi_capabilities_json"
+    ],
+    "controller": [
+      "motor_controller_new_socketcan",
+      "motor_controller_new_socketcanfd",
+      "motor_controller_new_dm_serial",
+      "motor_controller_new_dm_device",
+      "motor_controller_free",
+      "motor_controller_poll_feedback_once",
+      "motor_controller_enable_all",
+      "motor_controller_disable_all",
+      "motor_controller_shutdown",
+      "motor_controller_close_bus",
+      "motor_controller_add_damiao_motor",
+      "motor_controller_add_hexfellow_motor",
+      "motor_controller_add_myactuator_motor",
+      "motor_controller_add_robstride_motor",
+      "motor_controller_add_hightorque_motor"
+    ],
+    "motor_lifecycle": [
+      "motor_handle_free",
+      "motor_handle_enable",
+      "motor_handle_disable",
+      "motor_handle_clear_error",
+      "motor_handle_set_zero_position",
+      "motor_handle_ensure_mode"
+    ],
+    "motor_control": [
+      "motor_handle_send_mit",
+      "motor_handle_send_pos_vel",
+      "motor_handle_robstride_send_pos_vel_pp",
+      "motor_handle_robstride_send_pos_vel_csp",
+      "motor_handle_send_vel",
+      "motor_handle_send_force_pos"
+    ],
+    "state_and_feedback": [
+      "motor_handle_request_feedback",
+      "motor_handle_get_state",
+      "motor_handle_set_can_timeout_ms",
+      "motor_handle_store_parameters"
+    ],
+    "damiao": [
+      "motor_handle_write_register_f32",
+      "motor_handle_write_register_u32",
+      "motor_handle_get_register_f32",
+      "motor_handle_get_register_u32",
+      "motor_handle_damiao_get_param_f32",
+      "motor_handle_damiao_get_param_u32",
+      "motor_handle_damiao_write_param_f32",
+      "motor_handle_damiao_write_param_u32"
+    ],
+    "robstride": [
+      "motor_handle_robstride_ping",
+      "motor_handle_robstride_ping_host_id",
+      "motor_handle_robstride_get_param_f32_host_id",
+      "motor_handle_robstride_get_fault_report",
+      "motor_handle_robstride_set_device_id",
+      "motor_handle_robstride_set_active_report",
+      "motor_handle_robstride_write_param_i8",
+      "motor_handle_robstride_write_param_u8",
+      "motor_handle_robstride_write_param_u16",
+      "motor_handle_robstride_write_param_u32",
+      "motor_handle_robstride_write_param_f32",
+      "motor_handle_robstride_get_param_i8",
+      "motor_handle_robstride_get_param_u8",
+      "motor_handle_robstride_get_param_u16",
+      "motor_handle_robstride_get_param_u32",
+      "motor_handle_robstride_get_param_f32"
+    ]
+  },
+  "bindings": {
+    "controller_methods": [
+      "Controller(channel)",
+      "Controller.from_socketcanfd(channel)",
+      "Controller.from_dm_serial(serial_port, baud)",
+      "Controller.from_dm_device(dm_device_type, dm_channel)",
+      "Controller.close()",
+      "Controller.shutdown()",
+      "Controller.close_bus()",
+      "Controller.enable_all()",
+      "Controller.disable_all()",
+      "Controller.poll_feedback_once()",
+      "Controller.add_damiao_motor(motor_id, feedback_id, model)",
+      "Controller.add_hexfellow_motor(motor_id, feedback_id, model)",
+      "Controller.add_myactuator_motor(motor_id, feedback_id, model)",
+      "Controller.add_robstride_motor(motor_id, feedback_id, model)",
+      "Controller.add_hightorque_motor(motor_id, feedback_id, model)"
+    ],
+    "motor_methods": [
+      "Motor.close()",
+      "Motor.enable()",
+      "Motor.disable()",
+      "Motor.clear_error()",
+      "Motor.set_zero_position()",
+      "Motor.ensure_mode(mode, timeout_ms)",
+      "Motor.send_mit(pos, vel, kp, kd, tau)",
+      "Motor.send_pos_vel(pos, vlim)",
+      "Motor.robstride_send_pos_vel_pp(pos, vel_max, acc_set)",
+      "Motor.robstride_send_pos_vel_csp(pos, vlim)",
+      "Motor.send_vel(vel)",
+      "Motor.send_force_pos(pos, vlim, ratio)",
+      "Motor.request_feedback()",
+      "Motor.set_can_timeout_ms(timeout_ms)",
+      "Motor.store_parameters()",
+      "Motor.write_register_f32(rid, value)",
+      "Motor.write_register_u32(rid, value)",
+      "Motor.get_register_f32(rid, timeout_ms)",
+      "Motor.get_register_u32(rid, timeout_ms)",
+      "Motor.robstride_ping()",
+      "Motor.robstride_ping_host_id(host_id, timeout_ms)",
+      "Motor.robstride_get_param_f32_host_id(param_id, host_id, timeout_ms)",
+      "Motor.robstride_get_fault_report()",
+      "Motor.robstride_set_device_id(new_device_id)",
+      "Motor.robstride_set_active_report(enabled)",
+      "Motor.robstride_write_param_i8(param_id, value)",
+      "Motor.robstride_write_param_u8(param_id, value)",
+      "Motor.robstride_write_param_u16(param_id, value)",
+      "Motor.robstride_write_param_u32(param_id, value)",
+      "Motor.robstride_write_param_f32(param_id, value)",
+      "Motor.robstride_get_param_i8(param_id, timeout_ms)",
+      "Motor.robstride_get_param_u8(param_id, timeout_ms)",
+      "Motor.robstride_get_param_u16(param_id, timeout_ms)",
+      "Motor.robstride_get_param_u32(param_id, timeout_ms)",
+      "Motor.robstride_get_param_f32(param_id, timeout_ms)",
+      "Motor.damiao_get_param_f32(param_id, timeout_ms)",
+      "Motor.damiao_get_param_u32(param_id, timeout_ms)",
+      "Motor.damiao_write_param_f32(param_id, value)",
+      "Motor.damiao_write_param_u32(param_id, value)",
+      "Motor.get_state()"
+    ],
+    "python": {
+      "module_metadata": [
+        "motorbridge.get_version()",
+        "motorbridge.abi_version()",
+        "motorbridge.abi_capabilities()"
+      ],
+      "status": "aligned"
+    },
+    "cpp": {
+      "namespace_metadata": [
+        "motorbridge::abi_version()",
+        "motorbridge::abi_capabilities_json()"
+      ],
+      "status": "aligned"
+    }
+  },
+  "transports": [
+    "socketcan",
+    "socketcanfd",
+    "dm-serial",
+    "dm-device"
+  ],
+  "vendors": [
+    "damiao",
+    "robstride",
+    "myactuator",
+    "hexfellow",
+    "hightorque"
+  ]
+}

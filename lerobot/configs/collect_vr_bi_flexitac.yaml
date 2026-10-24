@@ -1,0 +1,44 @@
+robot:
+  type: bi_seeed_b601_dm_follower
+  left_port: /dev/serial/by-path/pci-0000:0b:00.3-usb-0:2.3:1.0
+  right_port: /dev/serial/by-path/pci-0000:0b:00.3-usb-0:2.2:1.0
+  id: bi_rebot_b601_dm_flexitac
+  can_adapter: damiao
+  action_mode: cartesian
+  control_mode: pos_vel
+  control_gripper: true
+  gripper_force_pos_torque_ratio: 0.1
+  enable_observation_joint_pos: true
+  left_gripper_type: rebotarm_b601
+  right_gripper_type: rebotarm_b601
+  flexitac_left_inner_port: /dev/serial/by-id/usb-FTDI_FT232R_USB_UART_AB0LSK5O-if00-port0
+  flexitac_left_outer_port: /dev/serial/by-id/usb-FTDI_FT232R_USB_UART_AB0L9AYV-if00-port0
+  flexitac_right_inner_port: /dev/serial/by-id/usb-FTDI_FT232R_USB_UART_AB0LS5C8-if00-port0
+  flexitac_right_outer_port: /dev/serial/by-id/usb-FTDI_FT232R_USB_UART_AB0L9KZJ-if00-port0
+  flexitac_calibration_mean_min: 0.0
+  flexitac_calibration_mean_max: 200.0
+  cameras:
+    global: {type: opencv, index_or_path: 4, width: 640, height: 480, fps: 30, fourcc: MJPG}
+    # left_wrist: {type: opencv, index_or_path: 7, width: 640, height: 480, fps: 30, fourcc: MJPG}
+    # right_wrist: {type: opencv, index_or_path: 8, width: 640, height: 480, fps: 30, fourcc: MJPG}
+
+teleop:
+  type: bi_quest3
+  id: bi_quest3
+
+dataset:
+  repo_id: yechen/b601-bi-flexitac
+  root: data/b601_bi_flexitac
+  single_task: Replace with the task description.
+  num_episodes: 20
+  fps: 30
+  video: true
+  vcodec: h264
+  push_to_hub: false
+  streaming_encoding: true
+
+display_data: false
+opencv_preview: true
+play_sounds: false
+resume: false
+manual_episode_control: true

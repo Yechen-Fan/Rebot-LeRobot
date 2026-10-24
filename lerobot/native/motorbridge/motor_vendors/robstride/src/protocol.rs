@@ -1,0 +1,393 @@
+use crate::registers::{parameter_info, ParameterDataType};
+use motor_core::error::{MotorError, Result};
+
+pub struct CommunicationType;
+
+impl CommunicationType {
+    pub const GET_DEVICE_ID: u32 = 0;
+    pub const OPERATION_CONTROL: u32 = 1;
+    pub const OPERATION_STATUS: u32 = 2;
+    pub const ENABLE: u32 = 3;
+    pub const DISABLE: u32 = 4;
+    pub const SET_ZERO_POSITION: u32 = 6;
+    pub const SET_DEVICE_ID: u32 = 7;
+    pub const READ_PARAMETER: u32 = 17;
+    pub const WRITE_PARAMETER: u32 = 18;
+    pub const FAULT_REPORT: u32 = 21;
+    pub const SAVE_PARAMETERS: u32 = 22;
+    pub const SET_BAUDRATE: u32 = 23;
+    pub const ACTIVE_REPORT: u32 = 24;
+    pub const SET_PROTOCOL: u32 = 25;
+}
+
+pub const PROTOCOL_PRIVATE: u8 = 0;
+pub const PROTOCOL_CANOPEN: u8 = 1;
+pub const PROTOCOL_MIT: u8 = 2;
+
+pub fn validate_protocol_cmd(protocol_cmd: u8) -> Result<()> {
+    if matches!(
+        protocol_cmd,
+        PROTOCOL_PRIVATE | PROTOCOL_CANOPEN | PROTOCOL_MIT
+    ) {
+        Ok(())
+    } else {
+        Err(MotorError::InvalidArgument(format!(
+            "invalid RobStride protocol command {protocol_cmd}, expected 0(private), 1(canopen), or 2(mit)"
+        )))
+    }
+}
+
+pub fn protocol_name(protocol_cmd: u8) -> &'static str {
+    match protocol_cmd {
+        PROTOCOL_PRIVATE => "private",
+        PROTOCOL_CANOPEN => "canopen",
+        PROTOCOL_MIT => "mit",
+        _ => "unknown",
+    }
+}
+
+pub fn encode_set_protocol(protocol_cmd: u8) -> Result<[u8; 8]> {
+    validate_protocol_cmd(protocol_cmd)?;
+    Ok([1, 2, 3, 4, 5, 6, protocol_cmd, 0])
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct StatusFlags {
+    pub uncalibrated: bool,
+    pub stall: bool,
+    pub magnetic_encoder_fault: bool,
+    pub overtemperature: bool,
+    pub overcurrent: bool,
+    pub undervoltage: bool,
+    pub device_id: u8,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct StatusFrame {
+    pub flags: StatusFlags,
+    pub position: f32,
+    pub velocity: f32,
+    pub torque: f32,
+    pub temperature_c: f32,
+}
+
+#[derive(Debug, Clone, Copy, Default)]
+pub struct FaultFlags {
+    pub phase_a_overcurrent: bool,
+    pub stall_overload: bool,
+    pub position_init_fault: bool,
+    pub hardware_id_fault: bool,
+    pub encoder_uncalibrated: bool,
+    pub phase_c_overcurrent: bool,
+    pub phase_b_overcurrent: bool,
+    pub overvoltage: bool,
+    pub undervoltage: bool,
+    pub driver_fault: bool,
+    pub overtemperature: bool,
+}
+
+#[derive(Debug, Clone, Copy, Default)]
+pub struct WarningFlags {
+    pub overtemperature_warning: bool,
+}
+
+#[derive(Debug, Clone, Copy, Default)]
+pub struct FaultReport {
+    pub fault_raw: u32,
+    pub warning_raw: u32,
+    pub faults: FaultFlags,
+    pub warnings: WarningFlags,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct PingReply {
+    pub device_id: u8,
+    pub responder_id: u8,
+    pub payload: [u8; 8],
+}
+
+pub fn build_ext_id(comm_type: u32, extra_data: u16, node_id: u8) -> u32 {
+    (comm_type << 24) | (u32::from(extra_data) << 8) | u32::from(node_id)
+}
+
+pub fn ext_id_parts(arbitration_id: u32) -> (u32, u16, u8) {
+    (
+        (arbitration_id >> 24) & 0x1F,
+        ((arbitration_id >> 8) & 0xFFFF) as u16,
+        (arbitration_id & 0xFF) as u8,
+    )
+}
+
+pub fn encode_parameter_read(param_id: u16) -> [u8; 8] {
+    let mut out = [0u8; 8];
+    out[0..2].copy_from_slice(&param_id.to_le_bytes());
+    out
+}
+
+pub fn encode_parameter_write(param_id: u16, raw_value: [u8; 4]) -> [u8; 8] {
+    let mut out = [0u8; 8];
+    out[0..2].copy_from_slice(&param_id.to_le_bytes());
+    out[4..8].copy_from_slice(&raw_value);
+    out
+}
+
+#[allow(clippy::too_many_arguments)]
+pub fn encode_mit_command(
+    position: f32,
+    velocity: f32,
+    kp: f32,
+    kd: f32,
+    torque: f32,
+    pmax: f32,
+    vmax: f32,
+    tmax: f32,
+    kp_max: f32,
+    kd_max: f32,
+) -> (u16, [u8; 8]) {
+    let pos_u16 = (((position.clamp(-pmax, pmax) / pmax) + 1.0) * 0x7FFF as f32) as u16;
+    let vel_u16 = (((velocity.clamp(-vmax, vmax) / vmax) + 1.0) * 0x7FFF as f32) as u16;
+    let kp_u16 = ((kp.clamp(0.0, kp_max) / kp_max) * 0xFFFF as f32) as u16;
+    let kd_u16 = ((kd.clamp(0.0, kd_max) / kd_max) * 0xFFFF as f32) as u16;
+    let torque_u16 = (((torque.clamp(-tmax, tmax) / tmax) + 1.0) * 0x7FFF as f32) as u16;
+    let data = [
+        (pos_u16 >> 8) as u8,
+        pos_u16 as u8,
+        (vel_u16 >> 8) as u8,
+        vel_u16 as u8,
+        (kp_u16 >> 8) as u8,
+        kp_u16 as u8,
+        (kd_u16 >> 8) as u8,
+        kd_u16 as u8,
+    ];
+    (torque_u16, data)
+}
+
+pub fn decode_ping_reply(arbitration_id: u32, data: [u8; 8]) -> Result<PingReply> {
+    let (comm_type, extra_data, responder_id) = ext_id_parts(arbitration_id);
+    if comm_type != CommunicationType::GET_DEVICE_ID {
+        return Err(MotorError::Protocol("not a ping reply".to_string()));
+    }
+    Ok(PingReply {
+        device_id: (extra_data & 0xFF) as u8,
+        responder_id,
+        payload: data,
+    })
+}
+
+pub fn decode_read_parameter_value(param_id: u16, payload: [u8; 8]) -> Result<[u8; 4]> {
+    let _ = param_id;
+    Ok([payload[4], payload[5], payload[6], payload[7]])
+}
+
+pub fn decode_status_frame(
+    extra_data: u16,
+    data: [u8; 8],
+    pmax: f32,
+    vmax: f32,
+    tmax: f32,
+) -> StatusFrame {
+    let position_u16 = u16::from_be_bytes([data[0], data[1]]);
+    let velocity_u16 = u16::from_be_bytes([data[2], data[3]]);
+    let torque_u16 = u16::from_be_bytes([data[4], data[5]]);
+    let temperature_u16 = u16::from_be_bytes([data[6], data[7]]);
+
+    let flags = StatusFlags {
+        uncalibrated: ((extra_data >> 13) & 0x01) != 0,
+        stall: ((extra_data >> 12) & 0x01) != 0,
+        magnetic_encoder_fault: ((extra_data >> 11) & 0x01) != 0,
+        overtemperature: ((extra_data >> 10) & 0x01) != 0,
+        overcurrent: ((extra_data >> 9) & 0x01) != 0,
+        undervoltage: ((extra_data >> 8) & 0x01) != 0,
+        device_id: (extra_data & 0xFF) as u8,
+    };
+
+    StatusFrame {
+        flags,
+        position: (f32::from(position_u16) / 0x7FFF as f32 - 1.0) * pmax,
+        velocity: (f32::from(velocity_u16) / 0x7FFF as f32 - 1.0) * vmax,
+        torque: (f32::from(torque_u16) / 0x7FFF as f32 - 1.0) * tmax,
+        temperature_c: f32::from(temperature_u16) * 0.1,
+    }
+}
+
+pub fn decode_fault_report(payload: [u8; 8]) -> FaultReport {
+    let fault_raw = u32::from_le_bytes([payload[0], payload[1], payload[2], payload[3]]);
+    let warning_raw = u32::from_le_bytes([payload[4], payload[5], payload[6], payload[7]]);
+    FaultReport {
+        fault_raw,
+        warning_raw,
+        faults: FaultFlags {
+            phase_a_overcurrent: (fault_raw & (1 << 16)) != 0,
+            stall_overload: (fault_raw & (1 << 14)) != 0,
+            position_init_fault: (fault_raw & (1 << 9)) != 0,
+            hardware_id_fault: (fault_raw & (1 << 8)) != 0,
+            encoder_uncalibrated: (fault_raw & (1 << 7)) != 0,
+            phase_c_overcurrent: (fault_raw & (1 << 5)) != 0,
+            phase_b_overcurrent: (fault_raw & (1 << 4)) != 0,
+            overvoltage: (fault_raw & (1 << 3)) != 0,
+            undervoltage: (fault_raw & (1 << 2)) != 0,
+            driver_fault: (fault_raw & (1 << 1)) != 0,
+            overtemperature: (fault_raw & 1) != 0,
+        },
+        warnings: WarningFlags {
+            overtemperature_warning: (warning_raw & 1) != 0,
+        },
+    }
+}
+
+pub fn encode_parameter_value(
+    param_id: u16,
+    value: crate::motor::ParameterValue,
+) -> Result<[u8; 4]> {
+    let info = parameter_info(param_id).ok_or_else(|| {
+        MotorError::InvalidArgument(format!("unknown RobStride parameter 0x{param_id:04X}"))
+    })?;
+    let raw = match (info.data_type, value) {
+        (ParameterDataType::Int8, crate::motor::ParameterValue::I8(v)) => [v as u8, 0, 0, 0],
+        (ParameterDataType::UInt8, crate::motor::ParameterValue::U8(v)) => [v, 0, 0, 0],
+        (ParameterDataType::UInt16, crate::motor::ParameterValue::U16(v)) => {
+            let mut out = [0u8; 4];
+            out[0..2].copy_from_slice(&v.to_le_bytes());
+            out
+        }
+        (ParameterDataType::UInt32, crate::motor::ParameterValue::U32(v)) => v.to_le_bytes(),
+        (ParameterDataType::Float32, crate::motor::ParameterValue::F32(v)) => v.to_le_bytes(),
+        _ => {
+            return Err(MotorError::InvalidArgument(format!(
+                "type mismatch for parameter 0x{param_id:04X}"
+            )))
+        }
+    };
+    Ok(raw)
+}
+
+#[cfg(test)]
+mod fault_tests {
+    use super::*;
+
+    #[test]
+    fn decode_fault_report_maps_documented_bits() {
+        let fault_raw = (1_u32 << 16)
+            | (1 << 14)
+            | (1 << 9)
+            | (1 << 8)
+            | (1 << 7)
+            | (1 << 5)
+            | (1 << 4)
+            | (1 << 3)
+            | (1 << 2)
+            | (1 << 1)
+            | 1;
+        let warning_raw = 1_u32;
+        let mut payload = [0_u8; 8];
+        payload[0..4].copy_from_slice(&fault_raw.to_le_bytes());
+        payload[4..8].copy_from_slice(&warning_raw.to_le_bytes());
+
+        let report = decode_fault_report(payload);
+        assert_eq!(report.fault_raw, fault_raw);
+        assert_eq!(report.warning_raw, warning_raw);
+        assert!(report.faults.phase_a_overcurrent);
+        assert!(report.faults.stall_overload);
+        assert!(report.faults.position_init_fault);
+        assert!(report.faults.hardware_id_fault);
+        assert!(report.faults.encoder_uncalibrated);
+        assert!(report.faults.phase_c_overcurrent);
+        assert!(report.faults.phase_b_overcurrent);
+        assert!(report.faults.overvoltage);
+        assert!(report.faults.undervoltage);
+        assert!(report.faults.driver_fault);
+        assert!(report.faults.overtemperature);
+        assert!(report.warnings.overtemperature_warning);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::motor::ParameterValue;
+
+    #[test]
+    fn ext_id_build_and_parse_roundtrip() {
+        let id = build_ext_id(CommunicationType::READ_PARAMETER, 0xABCD, 0x7F);
+        let (comm, extra, node) = ext_id_parts(id);
+        assert_eq!(comm, CommunicationType::READ_PARAMETER);
+        assert_eq!(extra, 0xABCD);
+        assert_eq!(node, 0x7F);
+    }
+
+    #[test]
+    fn ping_reply_decode_validates_comm_type() {
+        let ok_id = build_ext_id(CommunicationType::GET_DEVICE_ID, 0x007F, 0x55);
+        let bad_id = build_ext_id(CommunicationType::READ_PARAMETER, 0x007F, 0x55);
+        let payload = [1, 2, 3, 4, 5, 6, 7, 8];
+
+        let reply = decode_ping_reply(ok_id, payload).expect("valid ping reply");
+        assert_eq!(reply.device_id, 0x7F);
+        assert_eq!(reply.responder_id, 0x55);
+        assert_eq!(reply.payload, payload);
+        assert!(decode_ping_reply(bad_id, payload).is_err());
+    }
+
+    #[test]
+    fn parameter_encoding_checks_type() {
+        let f = encode_parameter_value(0x7019, ParameterValue::F32(1.25)).expect("f32 param");
+        assert_eq!(f, 1.25f32.to_le_bytes());
+
+        let u32v = 123_456u32;
+        let u = encode_parameter_value(0x7028, ParameterValue::U32(u32v)).expect("u32 param");
+        assert_eq!(u, u32v.to_le_bytes());
+
+        let mismatch = encode_parameter_value(0x7028, ParameterValue::F32(1.0));
+        assert!(mismatch.is_err());
+    }
+
+    #[test]
+    fn read_parameter_decode_accepts_unknown_id() {
+        let payload = [0u8; 8];
+        let ok = decode_read_parameter_value(0x7019, payload).expect("known param");
+        assert_eq!(ok, [0, 0, 0, 0]);
+        let unknown =
+            decode_read_parameter_value(0xDEAD, payload).expect("unknown param should pass raw");
+        assert_eq!(unknown, [0, 0, 0, 0]);
+    }
+
+    #[test]
+    fn mit_encoder_uses_each_unified_input() {
+        let limits = (12.0, 50.0, 17.0, 500.0, 5.0);
+        let (base_tau, base_data) = encode_mit_command(
+            0.1, 0.2, 3.0, 0.4, 0.5, limits.0, limits.1, limits.2, limits.3, limits.4,
+        );
+
+        let (_, pos_data) = encode_mit_command(
+            0.2, 0.2, 3.0, 0.4, 0.5, limits.0, limits.1, limits.2, limits.3, limits.4,
+        );
+        assert_ne!(pos_data[0..2], base_data[0..2]);
+        assert_eq!(pos_data[2..8], base_data[2..8]);
+
+        let (_, vel_data) = encode_mit_command(
+            0.1, 0.4, 3.0, 0.4, 0.5, limits.0, limits.1, limits.2, limits.3, limits.4,
+        );
+        assert_eq!(vel_data[0..2], base_data[0..2]);
+        assert_ne!(vel_data[2..4], base_data[2..4]);
+        assert_eq!(vel_data[4..8], base_data[4..8]);
+
+        let (_, kp_data) = encode_mit_command(
+            0.1, 0.2, 4.0, 0.4, 0.5, limits.0, limits.1, limits.2, limits.3, limits.4,
+        );
+        assert_eq!(kp_data[0..4], base_data[0..4]);
+        assert_ne!(kp_data[4..6], base_data[4..6]);
+        assert_eq!(kp_data[6..8], base_data[6..8]);
+
+        let (_, kd_data) = encode_mit_command(
+            0.1, 0.2, 3.0, 0.6, 0.5, limits.0, limits.1, limits.2, limits.3, limits.4,
+        );
+        assert_eq!(kd_data[0..6], base_data[0..6]);
+        assert_ne!(kd_data[6..8], base_data[6..8]);
+
+        let (tau, tau_data) = encode_mit_command(
+            0.1, 0.2, 3.0, 0.4, 0.8, limits.0, limits.1, limits.2, limits.3, limits.4,
+        );
+        assert_ne!(tau, base_tau);
+        assert_eq!(tau_data, base_data);
+    }
+}

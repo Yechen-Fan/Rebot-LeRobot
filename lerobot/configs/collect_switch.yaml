@@ -1,0 +1,43 @@
+# Single-arm B601 DM recording with a Switch Joy-Con.
+# Replace robot.port with the stable by-path link for the arm you are using.
+
+robot:
+  type: seeed_b601_dm_follower
+  port: /dev/serial/by-path/pci-0000:0b:00.3-usb-0:2.2:1.0
+  id: b601_switch_follower
+  can_adapter: damiao
+  action_mode: cartesian
+  control_mode: pos_vel
+  control_gripper: true
+  enabled_gripper_force: true
+  # Matches the previously validated B601 gripper setting.
+  gripper_force_pos_torque_ratio: 0.1
+  gripper_type: rebotarm_b601
+  enable_observation_joint_pos: true
+  cameras: {}
+
+teleop:
+  type: switch_joycon
+  id: switch_joycon
+  device: right
+  # Switch emits tcp.r1..tcp.r6. Rotation is active while ZR is held.
+  control_orientation: true
+  base_rotation_speed_rad_s: 1.0
+  rotation_sensitivity: 2.0
+  imu_calibrate_on_connect: true
+
+dataset:
+  repo_id: yechen/b601-switch-demo
+  root: data/b601_switch_demo
+  single_task: Replace with the task description.
+  num_episodes: 20
+  fps: 30
+  video: false
+  push_to_hub: false
+
+display_data: true
+play_sounds: false
+manual_episode_control: true
+
+# Use --resume=true only to append to an existing complete dataset.
+resume: false

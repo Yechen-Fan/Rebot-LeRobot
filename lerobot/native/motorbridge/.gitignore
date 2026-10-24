@@ -1,0 +1,20 @@
+/target
+/releases/
+*.o
+*.a
+*.so
+*.out
+*.exe
+c_abi_demo
+cpp_abi_demo
+__pycache__/
+*.pyc
+
+# Node / Mintlify local artifacts
+node_modules/
+.mintlify/
+.next/
+
+# Bundled vendor dependencies are required sources for this distribution.
+!third_party/dm_device/**/*.so
+!third_party/dm_device/**/*.dll.a

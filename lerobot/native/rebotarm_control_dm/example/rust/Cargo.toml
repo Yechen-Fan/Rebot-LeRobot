@@ -1,0 +1,10 @@
+[package]
+name = "rebotarm_control_dm_rust_examples"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+libc = "0.2"
+libloading = "0.8"
+motor_vendor_damiao = { path = "../../../motorbridge/motor_vendors/damiao" }

@@ -1,0 +1,47 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "motorbridge"
+dynamic = ["version"]
+description = "Python SDK for motorbridge Rust ABI"
+readme = { text = "Python SDK for the motorbridge Rust CAN motor-control ABI.", content-type = "text/plain" }
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "motorbridge contributors" }]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: Microsoft :: Windows",
+  "Operating System :: POSIX :: Linux",
+  "Operating System :: MacOS",
+]
+
+[tool.setuptools.dynamic]
+version = { attr = "motorbridge._version.VERSION" }
+
+[project.urls]
+Homepage = "https://github.com/tianrking/motorbridge"
+Repository = "https://github.com/tianrking/motorbridge"
+
+[project.scripts]
+motorbridge = "motorbridge.cli:main"
+motorbridge-cli = "motorbridge.cli:main"
+motorbridge-gateway = "motorbridge.gateway:main"
+motorbridge-install-dm-device = "motorbridge.dm_device_runtime:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+motorbridge = ["lib/*", "lib/dm_device/*", "bin/*"]

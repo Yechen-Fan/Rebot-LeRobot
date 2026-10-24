@@ -1,0 +1,29 @@
+# Right-arm B601 DM teleoperation with the right Switch Joy-Con.
+
+robot:
+  type: seeed_b601_dm_follower
+  port: /dev/serial/by-path/pci-0000:0b:00.3-usb-0:2.1:1.0
+  id: b601_switch_follower
+  can_adapter: damiao
+  action_mode: cartesian
+  control_mode: pos_vel
+  control_gripper: true
+  enabled_gripper_force: true
+  # Start conservatively; increase only after checking motion and temperature unloaded.
+  gripper_force_pos_torque_ratio: 0.1
+  gripper_type: rebotarm_b601
+  cameras: {}
+
+teleop:
+  type: switch_joycon
+  id: switch_joycon
+  device: right
+  # Hold ZR: IMU wrist rotation with joints 1-3 locked; translation is paused.
+  # Release ZR: stick and SL/SR translation resume from the current pose.
+  control_orientation: true
+  base_rotation_speed_rad_s: 1.0
+  rotation_sensitivity: 2.0
+  imu_calibrate_on_connect: true
+
+fps: 100
+display_data: false

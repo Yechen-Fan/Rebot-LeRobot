@@ -1,0 +1,460 @@
+name: ABI Release
+
+on:
+  push:
+    branches: [main]
+    tags:
+      - "v*.*.*"
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: abi-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-abi:
+    name: build-abi-${{ matrix.platform }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux-x86_64
+          - os: ubuntu-latest
+            platform: linux-aarch64
+          - os: windows-latest
+            platform: windows-x86_64
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Linux aarch64 cross toolchain
+        if: matrix.platform == 'linux-aarch64'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+
+      - name: Add Linux aarch64 Rust target
+        if: matrix.platform == 'linux-aarch64'
+        run: rustup target add aarch64-unknown-linux-gnu
+
+      - name: Build ABI (Linux x86_64)
+        if: matrix.platform == 'linux-x86_64'
+        run: |
+          cargo build -p motor_abi --release
+          cargo build -p ws_gateway --release
+
+      - name: Build ABI (Linux aarch64)
+        if: matrix.platform == 'linux-aarch64'
+        env:
+          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
+          CXX_aarch64_unknown_linux_gnu: aarch64-linux-gnu-g++
+        run: cargo build -p motor_abi --release --target aarch64-unknown-linux-gnu
+
+      - name: Build ABI (Windows)
+        if: startsWith(matrix.platform, 'windows')
+        run: |
+          cargo build -p motor_abi --release
+          cargo build -p ws_gateway --release
+
+      - name: Prepare package (Linux x86_64)
+        if: matrix.platform == 'linux-x86_64'
+        shell: bash
+        run: |
+          VERSION="${GITHUB_REF_NAME//\//-}"
+          STAGE="dist/motorbridge-abi-${VERSION}-linux-x86_64"
+          mkdir -p "${STAGE}/lib"
+          cp -v target/release/libmotor_abi.so "${STAGE}/lib/"
+          cp -v target/release/libmotor_abi.a "${STAGE}/lib/"
+          cmake -S bindings/cpp -B build/cpp-linux-x86_64 \
+            -DCMAKE_INSTALL_PREFIX="${PWD}/${STAGE}" \
+            -DMOTORBRIDGE_ABI_HEADER="${PWD}/motor_abi/include/motor_abi.h"
+          cmake --install build/cpp-linux-x86_64
+          # Debian package (Linux x86_64 only)
+          PKG_DIR="dist/pkg-deb-amd64"
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            DEB_VERSION="${VERSION#v}"
+          else
+            DEB_VERSION="0.0.0~${GITHUB_RUN_NUMBER}"
+          fi
+          mkdir -p "${PKG_DIR}/DEBIAN" "${PKG_DIR}/usr/include" "${PKG_DIR}/usr/lib"
+          cp -vr "${STAGE}/include/." "${PKG_DIR}/usr/include/"
+          cp -vr "${STAGE}/lib/." "${PKG_DIR}/usr/lib/"
+          cat > "${PKG_DIR}/DEBIAN/control" <<EOF
+          Package: motorbridge-abi
+          Version: ${DEB_VERSION}
+          Section: libs
+          Priority: optional
+          Architecture: amd64
+          Maintainer: motorbridge contributors
+          Description: motorbridge ABI libraries and C/C++ headers
+           Includes motor_abi dynamic/static libs and C++ wrapper headers/CMake config.
+          EOF
+          dpkg-deb -b "${PKG_DIR}" "dist/motorbridge-abi-${VERSION}-linux-x86_64.deb"
+          tar -czf "dist/motorbridge-abi-${VERSION}-linux-x86_64.tar.gz" -C dist "$(basename "${STAGE}")"
+
+      - name: Prepare package (Linux aarch64)
+        if: matrix.platform == 'linux-aarch64'
+        shell: bash
+        run: |
+          VERSION="${GITHUB_REF_NAME//\//-}"
+          STAGE="dist/motorbridge-abi-${VERSION}-linux-aarch64"
+          mkdir -p "${STAGE}/lib"
+          cp -v target/aarch64-unknown-linux-gnu/release/libmotor_abi.so "${STAGE}/lib/"
+          cp -v target/aarch64-unknown-linux-gnu/release/libmotor_abi.a "${STAGE}/lib/"
+          cmake -S bindings/cpp -B build/cpp-linux-aarch64 \
+            -DCMAKE_INSTALL_PREFIX="${PWD}/${STAGE}" \
+            -DMOTORBRIDGE_ABI_HEADER="${PWD}/motor_abi/include/motor_abi.h"
+          cmake --install build/cpp-linux-aarch64
+          tar -czf "dist/motorbridge-abi-${VERSION}-linux-aarch64.tar.gz" -C dist "$(basename "${STAGE}")"
+
+      - name: Prepare package (Windows)
+        if: matrix.platform == 'windows-x86_64'
+        shell: pwsh
+        run: |
+          $version = "${env:GITHUB_REF_NAME}" -replace '/', '-'
+          $stage = "dist/motorbridge-abi-$version-windows-x86_64"
+          New-Item -ItemType Directory -Path "$stage/lib" -Force | Out-Null
+          Copy-Item target/release/motor_abi.dll "$stage/lib/" -Force
+          if (Test-Path target/release/motor_abi.lib) {
+            Copy-Item target/release/motor_abi.lib "$stage/lib/" -Force
+          }
+          cmake -S bindings/cpp -B build/cpp-windows-x86_64 `
+            -DCMAKE_INSTALL_PREFIX="$PWD/$stage" `
+            -DMOTORBRIDGE_ABI_HEADER="$PWD/motor_abi/include/motor_abi.h"
+          cmake --install build/cpp-windows-x86_64 --config Release
+          Compress-Archive -Path "$stage/*" -DestinationPath "dist/motorbridge-abi-$version-windows-x86_64.zip" -Force
+
+      - name: Upload ABI package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: abi-package-${{ matrix.platform }}
+          path: |
+            dist/*.tar.gz
+            dist/*.zip
+            dist/*.deb
+          if-no-files-found: error
+
+  build-python-wheel-linux:
+    name: build-python-wheel-linux-${{ matrix.arch }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [x86_64, aarch64]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Setup QEMU
+        if: matrix.arch == 'aarch64'
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+
+      - name: Install cibuildwheel
+        run: python -m pip install --upgrade pip cibuildwheel==2.21.3
+
+      - name: Build Python wheels (Linux)
+        env:
+          CIBW_BUILD: "cp310-* cp311-* cp312-* cp313-* cp314-*"
+          CIBW_SKIP: "*musllinux* *i686* *pp*"
+          CIBW_ARCHS_LINUX: ${{ matrix.arch }}
+          CIBW_BUILD_FRONTEND: pip
+          CIBW_ENVIRONMENT_LINUX: MOTORBRIDGE_LIB=/project/target/release/libmotor_abi.so MOTORBRIDGE_WS_GATEWAY_BIN=/project/target/release/ws_gateway MOTOR_DM_DEVICE_BUNDLE=0
+          CIBW_BEFORE_ALL_LINUX: >
+            curl -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal &&
+            . $HOME/.cargo/env &&
+            cd /project &&
+            cargo build -p motor_abi --release &&
+            cargo build -p ws_gateway --release
+        run: python -m cibuildwheel --platform linux bindings/python --output-dir bindings/python/dist
+
+      - name: Upload Linux wheel artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-wheel-linux-${{ matrix.arch }}
+          path: bindings/python/dist/*.whl
+          if-no-files-found: error
+
+  build-python-wheel-macos:
+    name: build-python-wheel-macos-${{ matrix.arch }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-14
+            arch: arm64
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install cibuildwheel
+        run: python -m pip install --upgrade pip cibuildwheel==2.21.3
+
+      - name: Build Python wheels (macOS)
+        env:
+          CIBW_BUILD: "cp310-* cp311-* cp312-* cp313-* cp314-*"
+          CIBW_SKIP: "*musllinux* *i686* *pp*"
+          CIBW_ARCHS_MACOS: ${{ matrix.arch }}
+          CIBW_BUILD_FRONTEND: pip
+          CIBW_ENVIRONMENT_MACOS: MOTORBRIDGE_LIB=/Users/runner/work/motorbridge/motorbridge/target/release/libmotor_abi.dylib MOTORBRIDGE_WS_GATEWAY_BIN=/Users/runner/work/motorbridge/motorbridge/target/release/ws_gateway
+          CIBW_BEFORE_ALL_MACOS: >
+            curl -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal &&
+            . $HOME/.cargo/env &&
+            cd /Users/runner/work/motorbridge/motorbridge &&
+            cargo build -p motor_abi --release &&
+            cargo build -p ws_gateway --release
+        run: python -m cibuildwheel --platform macos bindings/python --output-dir bindings/python/dist
+
+      - name: Upload macOS wheel artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-wheel-macos-${{ matrix.arch }}
+          path: bindings/python/dist/*.whl
+          if-no-files-found: error
+
+  build-python-wheel-windows:
+    name: build-python-wheel-windows-py${{ matrix.python-version }}
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install Python build tools
+        run: python -m pip install --upgrade pip setuptools wheel
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build ABI for wheel
+        run: |
+          cargo build -p motor_abi --release
+          cargo build -p ws_gateway --release
+
+      - name: Build wheel
+        shell: pwsh
+        env:
+          MOTORBRIDGE_LIB: ${{ github.workspace }}\\target\\release\\motor_abi.dll
+          MOTORBRIDGE_WS_GATEWAY_BIN: ${{ github.workspace }}\\target\\release\\ws_gateway.exe
+        run: |
+          if (Test-Path bindings/python/dist) { Remove-Item bindings/python/dist -Recurse -Force }
+          if (Test-Path bindings/python/build) { Remove-Item bindings/python/build -Recurse -Force }
+          if (Test-Path bindings/python/src/motorbridge.egg-info) { Remove-Item bindings/python/src/motorbridge.egg-info -Recurse -Force }
+          python -m pip wheel --no-build-isolation bindings/python -w bindings/python/dist
+
+      - name: Upload wheel artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-wheel-windows-py${{ matrix.python-version }}
+          path: bindings/python/dist/*.whl
+          if-no-files-found: error
+
+  build-python-sdist:
+    name: build-python-sdist
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Python build tools
+        run: python -m pip install --upgrade pip build setuptools wheel
+
+      - name: Build source distribution
+        shell: bash
+        run: |
+          rm -rf bindings/python/dist
+          python -m build --sdist bindings/python -o bindings/python/dist
+
+      - name: Upload sdist artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-sdist
+          path: bindings/python/dist/*.tar.gz
+          if-no-files-found: error
+
+  build-motor-cli:
+    name: build-motor-cli-${{ matrix.platform }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux-x86_64
+            target: x86_64-unknown-linux-gnu
+          - os: ubuntu-latest
+            platform: linux-aarch64
+            target: aarch64-unknown-linux-gnu
+          - os: windows-latest
+            platform: windows-x86_64
+            target: x86_64-pc-windows-msvc
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Install Linux aarch64 cross toolchain
+        if: matrix.platform == 'linux-aarch64'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+
+      - name: Build motor_cli (Linux native)
+        if: matrix.platform == 'linux-x86_64'
+        run: cargo build -p motor_cli --release --target ${{ matrix.target }}
+
+      - name: Build motor_cli (Linux aarch64)
+        if: matrix.platform == 'linux-aarch64'
+        env:
+          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
+          CXX_aarch64_unknown_linux_gnu: aarch64-linux-gnu-g++
+        run: cargo build -p motor_cli --release --target ${{ matrix.target }}
+
+      - name: Build motor_cli (Windows)
+        if: matrix.platform == 'windows-x86_64'
+        run: cargo build -p motor_cli --release --target ${{ matrix.target }}
+
+      - name: Package motor_cli (Linux)
+        if: matrix.platform != 'windows-x86_64'
+        shell: bash
+        run: |
+          VERSION="${GITHUB_REF_NAME//\//-}"
+          STAGE="dist/motor-cli-${VERSION}-${{ matrix.platform }}"
+          mkdir -p "${STAGE}/bin"
+          cp -v "target/${{ matrix.target }}/release/motor_cli" "${STAGE}/bin/"
+          {
+            echo "version=${VERSION}"
+            echo "commit=${GITHUB_SHA}"
+            echo "built_at=$(date -Iseconds)"
+            echo "platform=${{ matrix.platform }}"
+            echo "target=${{ matrix.target }}"
+          } > "${STAGE}/BUILD_INFO.txt"
+          tar -czf "dist/motor-cli-${VERSION}-${{ matrix.platform }}.tar.gz" -C dist "$(basename "${STAGE}")"
+
+      - name: Package motor_cli (Windows)
+        if: matrix.platform == 'windows-x86_64'
+        shell: pwsh
+        run: |
+          $version = "${env:GITHUB_REF_NAME}" -replace '/', '-'
+          $stage = "dist/motor-cli-$version-${{ matrix.platform }}"
+          New-Item -ItemType Directory -Path "$stage/bin" -Force | Out-Null
+          Copy-Item "target/${{ matrix.target }}/release/motor_cli.exe" "$stage/bin/" -Force
+          @"
+          version=$version
+          commit=${env:GITHUB_SHA}
+          built_at=$((Get-Date).ToString("o"))
+          platform=${{ matrix.platform }}
+          target=${{ matrix.target }}
+          "@ | Out-File -FilePath "$stage/BUILD_INFO.txt" -Encoding ascii
+          Compress-Archive -Path "$stage/*" -DestinationPath "dist/motor-cli-$version-${{ matrix.platform }}.zip" -Force
+
+      - name: Upload motor_cli artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: motor-cli-${{ matrix.platform }}
+          path: |
+            dist/motor-cli-*.tar.gz
+            dist/motor-cli-*.zip
+          if-no-files-found: error
+
+  release:
+    name: publish-release
+    if: startsWith(github.ref, 'refs/tags/v') && always()
+    needs:
+      - build-abi
+      - build-python-wheel-linux
+      - build-python-wheel-macos
+      - build-python-wheel-windows
+      - build-python-sdist
+      - build-motor-cli
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all packages
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+
+      - name: Generate SHA256SUMS
+        shell: bash
+        run: |
+          mapfile -d '' files < <(find release-assets -type f \( -name "*.tar.gz" -o -name "*.zip" -o -name "*.whl" -o -name "*.deb" \) -print0)
+          if [ "${#files[@]}" -eq 0 ]; then
+            echo "No release assets were produced by upstream jobs."
+            exit 1
+          fi
+          printf '%s\0' "${files[@]}" | sort -z | xargs -0 sha256sum > release-assets/SHA256SUMS.txt
+          cat release-assets/SHA256SUMS.txt
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          body: |
+            ## Quick Start (How to choose assets)
+
+            - C/C++ development on Ubuntu x86_64:
+              download `motorbridge-abi-<tag>-linux-x86_64.deb`, then install:
+              `sudo apt install ./motorbridge-abi-<tag>-linux-x86_64.deb`
+            - C/C++ development on Windows x86_64:
+              download `motorbridge-abi-<tag>-windows-x86_64.zip`, extract include/lib,
+              then link `motor_abi.dll/.lib` in your project.
+            - C/C++ development on other platforms:
+              use ABI archives (`.tar.gz` / `.zip`) and point CMake to installed include/lib paths.
+            - CLI debugging:
+              download the matching `motor-cli-<tag>-<platform>.(tar.gz|zip)`, extract and run:
+              `bin/motor_cli` (Linux) or `bin/motor_cli.exe` (Windows).
+            - Python development:
+              pick the matching wheel (`cp310/cp311/cp312/cp313/cp314`, arch/platform), then:
+              `pip install ./motorbridge-*.whl`
+            - Python source install:
+              use the sdist package (`.tar.gz`) from this release.
+
+            Notes:
+            - Linux runtime may need `LD_LIBRARY_PATH` if your linker path is not configured.
+            - Recommended first validation: run a vendor scan, then ping/read-param (RobStride) or MIT test (Damiao).
+          files: |
+            release-assets/**/*.tar.gz
+            release-assets/**/*.zip
+            release-assets/**/*.whl
+            release-assets/**/*.deb
+            release-assets/SHA256SUMS.txt

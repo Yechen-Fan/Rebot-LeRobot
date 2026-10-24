@@ -1,0 +1,19 @@
+# Train on newly recorded auto-zero tactile data; raw values/baselines verify each saved contact map.
+dataset:
+  repo_id: yechen/b601-bi-flexitac-auto-zero
+  root: data/egg_auto_zero
+
+policy:
+  type: act
+  device: cuda
+  push_to_hub: false
+  tactile_baseline: 0.0
+  tactile_scale: 255.0
+
+output_dir: outputs/act_egg_auto_zero
+job_name: act_egg_auto_zero
+batch_size: 8
+steps: 100000
+save_freq: 10000
+log_freq: 100
+num_workers: 4

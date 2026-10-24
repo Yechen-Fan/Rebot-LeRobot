@@ -1,0 +1,36 @@
+[package]
+name = "rebotarm_control_dm"
+version = "0.1.0"
+edition = "2021"
+authors = ["dongyaolin"]
+license = "MIT"
+description = "reBotArm actuator control — Rust core with Python bindings (drop-in for reBotArm_control_py.actuator)"
+
+# Compiled Python extension module: imported as `rebotarm_control_dm._native`
+[lib]
+name = "_native"
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+# NOTE: `extension-module` is intentionally NOT enabled here so `cargo build`/`cargo test`
+# can link libpython. maturin passes `pyo3/extension-module` at wheel-build time
+# (see [tool.maturin] features in pyproject.toml).
+pyo3 = { version = "0.23", features = [] }
+numpy = "0.23"
+arc-swap = "1"
+serde = { version = "1", features = ["derive"] }
+serde_yaml = "0.9"
+
+[target.'cfg(target_os = "linux")'.dependencies]
+libc = "0.2"
+
+# Direct Rust dependency on the motorbridge native vendor crates (no ctypes / C-ABI hop).
+motor_core             = { path = "../motorbridge/motor_core" }
+motor_vendor_damiao    = { path = "../motorbridge/motor_vendors/damiao" }
+motor_vendor_myactuator = { path = "../motorbridge/motor_vendors/myactuator" }
+motor_vendor_robstride = { path = "../motorbridge/motor_vendors/robstride" }
+motor_vendor_hightorque = { path = "../motorbridge/motor_vendors/hightorque" }
+
+[profile.release]
+opt-level = 3
+lto = "thin"

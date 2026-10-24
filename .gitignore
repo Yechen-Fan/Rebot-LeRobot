@@ -1,0 +1,31 @@
+# Local datasets, training weights, recordings, reports and backups.
+/data/
+/outputs/
+/data_backups/
+/backups/
+*.safetensors
+*.ckpt
+*.pth
+*.pt
+*.onnx
+
+# Python and tool caches.
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.cache/
+.venv/
+venv/
+.env
+
+# Generated native artifacts; bundled vendor dependencies remain tracked.
+target/
+build/
+dist/
+*.whl
+*.log
+node_modules/
+.DS_Store

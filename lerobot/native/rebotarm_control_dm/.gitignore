@@ -1,0 +1,17 @@
+/target/
+/example/rust/target/
+/example/cpp/build/
+/dist/
+/cpp/build/
+
+__pycache__/
+*.pyc
+.pytest_cache/
+*.egg-info/
+
+/python/rebotarm_control_dm/_native*.so
+/python/rebotarm_control_dm/_math*.so
+/python/rebotarm_control_dm/librebotarm_math*.so
+
+# Local hardware calibration outputs.
+/calibration/*

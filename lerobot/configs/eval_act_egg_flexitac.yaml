@@ -1,0 +1,238 @@
+# Egg ACT 20k with calibrated left-gripper head and synchronized grasp execution.
+# c=start, s=stop, h=return to startup pose, Esc=exit.
+# Set recording_enabled=true to save inference episodes (s=stop and save).
+# Keep tactile pads unloaded during startup calibration.
+robot:
+  type: bi_seeed_b601_dm_follower
+  left_port: /dev/serial/by-path/pci-0000:0b:00.3-usb-0:2.2:1.0
+  right_port: /dev/serial/by-path/pci-0000:0b:00.3-usb-0:2.1:1.0
+  id: bi_rebot_b601_dm_flexitac
+  can_adapter: damiao
+  action_mode: cartesian
+  control_mode: pos_vel
+  left_pos_vel_gains: &id001
+    shoulder_pan:
+    - 0.0125
+    - 0.004
+    - 150.0
+    - 0.5
+    shoulder_lift:
+    - 0.013
+    - 0.004
+    - 200.0
+    - 10.0
+    elbow_flex:
+    - 0.013
+    - 0.004
+    - 200.0
+    - 10.0
+    wrist_flex:
+    - 0.0032
+    - 0.002
+    - 50.0
+    - 1.0
+    wrist_yaw:
+    - 0.0008
+    - 0.004
+    - 50.0
+    - 1.0
+    wrist_roll:
+    - 0.0008
+    - 0.002
+    - 50.0
+    - 1.0
+    gripper:
+    - 0.0008
+    - 0.002
+    - 50.0
+    - 1.0
+  right_pos_vel_gains: *id001
+  control_gripper: true
+  enable_observation_joint_pos: true
+  left_gripper_type: rebotarm_b601
+  right_gripper_type: rebotarm_b601
+  rt_rate: 100.0
+  flexitac_left_inner_port: /dev/serial/by-id/usb-FTDI_FT232R_USB_UART_AB0L9KZJ-if00-port0
+  flexitac_left_outer_port: /dev/serial/by-id/usb-FTDI_FT232R_USB_UART_AB0LS5C8-if00-port0
+  flexitac_right_inner_port: /dev/serial/by-id/usb-FTDI_FT232R_USB_UART_AB0L9AYV-if00-port0
+  flexitac_right_outer_port: /dev/serial/by-id/usb-FTDI_FT232R_USB_UART_AB0LSK5O-if00-port0
+  flexitac_auto_zero: true
+  flexitac_calibration_mean_min: 0.0
+  flexitac_calibration_mean_max: 200.0
+  cameras:
+    global:
+      type: opencv
+      index_or_path: 4
+      width: 640
+      height: 480
+      fps: 30
+      fourcc: YUYV
+    left_wrist:
+      type: opencv
+      index_or_path: 8
+      width: 640
+      height: 480
+      fps: 30
+      fourcc: MJPG
+    right_wrist:
+      type: opencv
+      index_or_path: 6
+      width: 640
+      height: 480
+      fps: 30
+      fourcc: MJPG
+# The rate/task remain active; dataset files are written only with recording_enabled=true.
+dataset:
+  repo_id: yechen/eval_egg_act_gripper_sync
+  root: outputs/eval_egg_act_gripper_sync_20261024
+  single_task: Dual-arm manipulation demonstration with tactile sensing.
+  num_episodes: 10
+  fps: 30
+  video: true
+  vcodec: h264
+  push_to_hub: false
+  streaming_encoding: true
+  num_image_writer_processes: 0
+  num_image_writer_threads_per_camera: 4
+  video_encoding_batch_size: 1
+policy:
+  type: act
+  n_obs_steps: 1
+  input_features:
+    observation.state:
+      type: STATE
+      shape:
+      - 32
+    observation.images.global:
+      type: VISUAL
+      shape:
+      - 3
+      - 480
+      - 640
+    observation.images.left_wrist:
+      type: VISUAL
+      shape:
+      - 3
+      - 480
+      - 640
+    observation.images.right_wrist:
+      type: VISUAL
+      shape:
+      - 3
+      - 480
+      - 640
+    observation.tactile.left_inner:
+      type: TACTILE
+      shape:
+      - 16
+      - 32
+    observation.tactile.left_outer:
+      type: TACTILE
+      shape:
+      - 16
+      - 32
+    observation.tactile.right_inner:
+      type: TACTILE
+      shape:
+      - 16
+      - 32
+    observation.tactile.right_outer:
+      type: TACTILE
+      shape:
+      - 16
+      - 32
+  output_features:
+    action:
+      type: ACTION
+      shape:
+      - 20
+  device: cuda
+  use_amp: false
+  use_peft: false
+  push_to_hub: false
+  repo_id: null
+  private: null
+  tags: null
+  license: null
+  pretrained_path: outputs/act_egg_gripper_candidate_20261024/pretrained_model
+  chunk_size: 100
+  n_action_steps: 1
+  normalization_mapping:
+    VISUAL: MEAN_STD
+    TACTILE: IDENTITY
+    STATE: MEAN_STD
+    ACTION: MEAN_STD
+  vision_backbone: resnet18
+  pretrained_backbone_weights: null
+  replace_final_stride_with_dilation: false
+  tactile_baseline: 0.0
+  tactile_scale: 255.0
+  pre_norm: false
+  dim_model: 512
+  n_heads: 8
+  dim_feedforward: 3200
+  feedforward_activation: relu
+  n_encoder_layers: 4
+  n_decoder_layers: 1
+  use_vae: true
+  latent_dim: 32
+  n_vae_encoder_layers: 4
+  temporal_ensemble_coeff: 0.01
+  dropout: 0.1
+  kl_weight: 10.0
+  optimizer_lr: 1.0e-05
+  optimizer_weight_decay: 0.0001
+  optimizer_lr_backbone: 1.0e-05
+policy_motion:
+  # Left demonstrations use only 0=open / 1=closed. Do not execute small regression noise as closure.
+  # Decode before the existing velocity/acceleration limiter; the right gripper remains continuous.
+  binary_gripper_actions: [left_gripper.pos]
+  binary_gripper_threshold: 0.5
+  # Hold the predicted grasp pose until reached and left-gripper feedback reaches 0.9.
+  synchronized_gripper_actions: [left_gripper.pos]
+  gripper_position_tolerance: 0.003
+  gripper_rotation_tolerance: 5.0
+  gripper_closed_feedback: 0.9
+  # Task-specific fallback: paired release poses from the 9 egg demonstrations.
+  # Positions are metres; orientations use rotation-6d. New c/Home sessions reset the release latch.
+  handover_release:
+    donor_gripper: left_gripper.pos
+    receiver_gripper: right_gripper.pos
+    position_tolerance: 0.04
+    relative_position_tolerance: 0.025
+    rotation_tolerance: 20.0
+    # Strict entry, 20% wider exit band for the same pose pair; stability is still required.
+    match_exit_scale: 1.2
+    settle_time_s: 1.0
+    settle_position_tolerance: 0.004
+    settle_rotation_tolerance: 3.0
+    pose_pairs:
+    - donor: [0.4056239, -0.2808171, 0.2758123, 0.5580075, -0.8281446, 0.0529553, 0.8268576, 0.5494697, -0.1199567]
+      receiver: [0.3675765, 0.3141427, 0.2557678, 0.8288853, 0.5000165, -0.2508638, -0.5057191, 0.8614658, 0.0460967]
+    - donor: [0.4156859, -0.2759697, 0.3142289, 0.7728868, -0.6345437, -0.0005565, 0.6183892, 0.7534063, -0.2235477]
+      receiver: [0.4078477, 0.2889990, 0.2896203, 0.7044433, 0.7060733, -0.0722497, -0.7049814, 0.6842729, -0.1864722]
+    - donor: [0.4063231, -0.2921545, 0.2906960, 0.7388442, -0.6657262, 0.1044879, 0.6736101, 0.7339776, -0.0867547]
+      receiver: [0.3948270, 0.2683135, 0.2555976, 0.7718109, 0.6356596, -0.0156488, -0.6350119, 0.7692926, -0.0703482]
+    - donor: [0.3782404, -0.2427247, 0.2611073, 0.7635903, -0.6380841, -0.0988870, 0.6184739, 0.7667670, -0.1719256]
+      receiver: [0.3977196, 0.3095542, 0.2200176, 0.4788205, 0.8762659, -0.0537482, -0.8725608, 0.4682589, -0.1391808]
+    - donor: [0.4563336, -0.2556428, 0.2475637, 0.9223990, -0.3591147, -0.1421854, 0.3163102, 0.9136070, -0.2554802]
+      receiver: [0.4310471, 0.3282676, 0.2242102, 0.7610068, 0.6391011, -0.1114380, -0.6312514, 0.7691010, 0.1000261]
+    - donor: [0.3746919, -0.2939743, 0.2335718, 0.5384986, -0.8250662, 0.1711284, 0.8415935, 0.5165775, -0.1576962]
+      receiver: [0.3663749, 0.2706615, 0.2125116, 0.6454193, 0.7449604, -0.1687242, -0.7502637, 0.6597420, 0.0429520]
+    - donor: [0.4058385, -0.3353907, 0.2397421, 0.7693239, -0.6251200, -0.1317793, 0.6311401, 0.7756519, 0.0051271]
+      receiver: [0.3764622, 0.2643588, 0.2116424, 0.7323903, 0.6408438, -0.2300516, -0.6564041, 0.7543210, 0.0115538]
+    - donor: [0.3811092, -0.3210040, 0.2423267, 0.8679168, -0.4549432, -0.1993668, 0.4225382, 0.8872325, -0.1851484]
+      receiver: [0.4075769, 0.2295420, 0.2119407, 0.5100845, 0.8030138, -0.3081926, -0.8435037, 0.5371126, 0.0034094]
+    - donor: [0.3854504, -0.3110235, 0.2462315, 0.6120256, -0.7895111, 0.0457909, 0.7880569, 0.6039985, -0.1189632]
+      receiver: [0.3708253, 0.2515228, 0.2116099, 0.6650743, 0.7412232, -0.0909087, -0.7438959, 0.6468978, -0.1677560]
+  max_joint_velocity: 45.0
+  max_joint_acceleration: 180.0
+  max_gripper_velocity: 180.0
+  max_gripper_acceleration: 720.0
+display_data: false
+recording_enabled: false
+display_cameras_only: false
+opencv_preview: true
+play_sounds: false
+resume: false
+manual_episode_control: true

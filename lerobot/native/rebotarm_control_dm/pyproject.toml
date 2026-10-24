@@ -1,0 +1,33 @@
+[build-system]
+requires = ["maturin>=1.5,<2.0"]
+build-backend = "maturin"
+
+[project]
+name = "rebotarm_control_dm"
+version = "0.1.0"
+description = "reBot Arm B601 控制库 —— Rust actuator (motorbridge) + C++ 数学层 (Pinocchio)，Python 仅上层接口"
+readme = { text = "Native actuator, kinematics, dynamics, and trajectory backend for the reBot Arm B601 DM.", content-type = "text/plain" }
+authors = [
+    { name = "dongyaolin" },
+]
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.10"
+# 运行期仅需 numpy/pyyaml。运动学/动力学已下沉到 C++（链接 Pinocchio C++），
+# 不再依赖 Python 的 pinocchio/pin、meshcat、matplotlib。
+# 注：Pinocchio C++ 不是 pip 包，需通过 conda-forge 安装；工作区安装入口为 install_rebot.sh。
+dependencies = [
+    "numpy>=1.24.0",
+    "pyyaml>=6.0",
+]
+
+[tool.maturin]
+# Pure-Python package tree lives under python/; the compiled extension is built
+# as the submodule rebotarm_control_dm._native and merged into the same package.
+python-source = "python"
+module-name = "rebotarm_control_dm._native"
+features = ["pyo3/extension-module"]
+include = [
+    { path = "python/rebotarm_control_dm/urdf/**", format = "sdist" },
+    { path = "python/rebotarm_control_dm/urdf/**", format = "wheel" },
+]

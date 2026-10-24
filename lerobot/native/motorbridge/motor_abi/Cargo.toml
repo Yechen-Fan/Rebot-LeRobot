@@ -1,0 +1,20 @@
+[package]
+name = "motor_abi"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[lints]
+workspace = true
+
+[lib]
+crate-type = ["cdylib", "staticlib"]
+
+[dependencies]
+motor_core = { path = "../motor_core" }
+motor_vendor_damiao = { path = "../motor_vendors/damiao" }
+motor_vendor_hexfellow = { path = "../motor_vendors/hexfellow" }
+motor_vendor_hightorque = { path = "../motor_vendors/hightorque" }
+motor_vendor_myactuator = { path = "../motor_vendors/myactuator" }
+motor_vendor_robstride = { path = "../motor_vendors/robstride" }

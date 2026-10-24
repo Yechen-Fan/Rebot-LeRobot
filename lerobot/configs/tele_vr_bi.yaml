@@ -1,0 +1,20 @@
+robot:
+  type: bi_seeed_b601_dm_follower
+  left_port: /dev/serial/by-path/pci-0000:0b:00.3-usb-0:2.2:1.0
+  right_port: /dev/serial/by-path/pci-0000:0b:00.3-usb-0:2.1:1.0
+  id: bi_rebot_b601_dm
+  can_adapter: damiao
+  action_mode: cartesian
+  control_mode: pos_vel
+  control_gripper: true
+  left_gripper_type: rebotarm_b601
+  right_gripper_type: rebotarm_b601
+  cameras: {}
+
+teleop:
+  type: bi_quest3
+  id: bi_quest3
+
+fps: 100
+display_data: false
+ 

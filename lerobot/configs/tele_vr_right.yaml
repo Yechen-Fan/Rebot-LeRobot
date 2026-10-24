@@ -1,0 +1,21 @@
+# Right-arm B601 DM with the Quest 3 right controller.
+# Port follows right_port in tele_vr_bi.yaml; control uses original defaults.
+robot:
+  type: seeed_b601_dm_follower
+  port: /dev/serial/by-path/pci-0000:0b:00.3-usb-0:2.1:1.0
+  id: right_rebot_b601_dm
+  can_adapter: damiao
+  action_mode: cartesian
+  control_mode: pos_vel
+  control_gripper: true
+  gripper_type: rebotarm_b601
+  cameras: {}
+
+teleop:
+  type: quest3
+  id: quest3
+  use_left_controller: false
+  use_right_controller: true
+
+fps: 100
+display_data: false

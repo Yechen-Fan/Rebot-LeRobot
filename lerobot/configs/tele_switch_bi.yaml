@@ -1,0 +1,32 @@
+robot:
+  type: bi_seeed_b601_dm_follower
+  left_port: /dev/serial/by-path/pci-0000:0b:00.3-usb-0:2.2:1.0
+  right_port: /dev/serial/by-path/pci-0000:0b:00.3-usb-0:2.1:1.0
+  id: bi_rebot_b601_dm
+  can_adapter: damiao
+  action_mode: cartesian
+  control_mode: pos_vel
+  # J4 low-speed/holding compensation, verified with bounded A/B/A tests.
+  # Order: velocity Kp, velocity Ki, position Kp, position Ki. RAM only; no Flash save.
+  left_pos_vel_gains: &switch_pos_vel_gains
+    shoulder_pan: [0.0125, 0.004, 150.0, 0.5]
+    shoulder_lift: [0.013, 0.004, 200.0, 10.0]
+    elbow_flex: [0.013, 0.004, 200.0, 10.0]
+    wrist_flex: [0.0032, 0.002, 50.0, 1.0]
+    wrist_yaw: [0.0008, 0.004, 50.0, 1.0]
+    wrist_roll: [0.0008, 0.002, 50.0, 1.0]
+    gripper: [0.0008, 0.002, 50.0, 1.0]
+  right_pos_vel_gains: *switch_pos_vel_gains
+  control_gripper: true
+  left_gripper_type: rebotarm_b601
+  right_gripper_type: rebotarm_b601
+  cameras: {}
+
+teleop:
+  type: bi_switch_joycon
+  id: bi_switch_joycon
+  left_device: left
+  right_device: right
+
+fps: 100
+display_data: true
