@@ -78,7 +78,7 @@ lerobot-teleoperate --config_path=lerobot/configs/tele_switch_bi.yaml
 
 # ⚙️ Data Collection
 
-Use `lerobot-record` to collect demonstrations. Find the available camera devices first:
+Find the available camera devices first:
 
 ```bash
 lerobot-find-cameras opencv
@@ -91,8 +91,6 @@ lerobot-find-cameras opencv
 ```bash
 lerobot-record --config_path=lerobot/configs/collect_switch_bi.yaml
 ```
-
-Default dataset: `data/bi`. This template uses three RGB cameras and Cartesian actions.
 
 **RGB + Robot State + FlexiTac**
 
