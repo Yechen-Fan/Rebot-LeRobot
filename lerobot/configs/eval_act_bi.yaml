@@ -1,16 +1,55 @@
+# ACT EE inference: refresh each frame, ensemble predictions, bound joint references.
+# c=start, s=stop, h=return Home, esc=exit; recording is disabled by default.
 robot:
   type: bi_seeed_b601_dm_follower
-  left_port: /dev/serial/by-path/pci-0000:0b:00.3-usb-0:2.4:1.0
+  left_port: /dev/serial/by-path/pci-0000:0b:00.3-usb-0:2.2:1.0
   right_port: /dev/serial/by-path/pci-0000:0b:00.3-usb-0:2.1:1.0
   id: bi_rebot_b601_dm
   can_adapter: damiao
-  action_mode: joint
+  action_mode: cartesian
   control_mode: pos_vel
+  left_pos_vel_gains: &id001
+    shoulder_pan:
+    - 0.0125
+    - 0.004
+    - 150.0
+    - 0.5
+    shoulder_lift:
+    - 0.013
+    - 0.004
+    - 200.0
+    - 10.0
+    elbow_flex:
+    - 0.013
+    - 0.004
+    - 200.0
+    - 10.0
+    wrist_flex:
+    - 0.0032
+    - 0.002
+    - 50.0
+    - 1.0
+    wrist_yaw:
+    - 0.0008
+    - 0.004
+    - 50.0
+    - 1.0
+    wrist_roll:
+    - 0.0008
+    - 0.002
+    - 50.0
+    - 1.0
+    gripper:
+    - 0.0008
+    - 0.002
+    - 50.0
+    - 1.0
+  right_pos_vel_gains: *id001
   control_gripper: true
-  gripper_force_pos_torque_ratio: 0.2
-  enable_observation_joint_pos: true
   left_gripper_type: rebotarm_b601
   right_gripper_type: rebotarm_b601
+  enable_observation_joint_pos: true
+  rt_rate: 100.0
   cameras:
     global:
       type: opencv
@@ -18,7 +57,7 @@ robot:
       width: 640
       height: 480
       fps: 30
-      fourcc: MJPG
+      fourcc: YUYV
     left_wrist:
       type: opencv
       index_or_path: 8
@@ -33,31 +72,37 @@ robot:
       height: 480
       fps: 30
       fourcc: MJPG
-
 dataset:
-  repo_id: yechen/eval_bread_act
-  root: data/eval_bread_act
-  single_task: Pick bread from the toaster with both arms; place the left bread on the orange plate and the right bread on the purple plate.
+  repo_id: local/eval_act_bi
+  root: outputs/eval_act_bi
+  single_task: Dual-arm manipulation demonstration.
   num_episodes: 10
   fps: 30
   video: true
-  push_to_hub: false
-  private: false
+  vcodec: h264
+  streaming_encoding: true
   num_image_writer_processes: 0
   num_image_writer_threads_per_camera: 4
   video_encoding_batch_size: 1
-  vcodec: h264
-  streaming_encoding: true
-
+  push_to_hub: false
 policy:
   type: act
-  pretrained_path: outputs/act_bread_joint_new/checkpoints/010000/pretrained_model
+  pretrained_path: outputs/act_bi/checkpoints/last/pretrained_model
   device: cuda
-
+  push_to_hub: false
+  n_action_steps: 1
+  temporal_ensemble_coeff: 0.01
 display_data: false
 play_sounds: false
 resume: false
 manual_episode_control: true
+policy_motion:
+  max_joint_velocity: 45.0
+  max_joint_acceleration: 180.0
+  max_gripper_velocity: 180.0
+  max_gripper_acceleration: 720.0
 
 # Inference does not save a dataset unless explicitly enabled.
 recording_enabled: false
+display_cameras_only: false
+opencv_preview: true

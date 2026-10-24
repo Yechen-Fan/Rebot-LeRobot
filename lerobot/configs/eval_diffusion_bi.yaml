@@ -1,0 +1,43 @@
+# Dual-arm RGB + robot state inference; no tactile devices required.
+robot:
+  type: bi_seeed_b601_dm_follower
+  left_port: /dev/serial/by-path/pci-0000:0b:00.3-usb-0:2.2:1.0
+  right_port: /dev/serial/by-path/pci-0000:0b:00.3-usb-0:2.1:1.0
+  id: bi_rebot_b601_dm
+  can_adapter: damiao
+  action_mode: cartesian
+  control_mode: pos_vel
+  control_gripper: true
+  enable_observation_joint_pos: true
+  left_gripper_type: rebotarm_b601
+  right_gripper_type: rebotarm_b601
+  cameras:
+    global: {type: opencv, index_or_path: 4, width: 640, height: 480, fps: 30, fourcc: MJPG}
+    left_wrist: {type: opencv, index_or_path: 8, width: 640, height: 480, fps: 30, fourcc: MJPG}
+    right_wrist: {type: opencv, index_or_path: 6, width: 640, height: 480, fps: 30, fourcc: MJPG}
+
+dataset:
+  repo_id: local/eval_diffusion_bi
+  root: outputs/eval_diffusion_bi
+  single_task: Replace with the task description.
+  num_episodes: 10
+  fps: 30
+  video: true
+  vcodec: h264
+  push_to_hub: false
+  streaming_encoding: true
+
+policy:
+  type: diffusion
+  pretrained_path: outputs/diffusion_bi/checkpoints/last/pretrained_model
+  device: cuda
+
+display_data: false
+play_sounds: false
+resume: false
+manual_episode_control: true
+
+# Inference does not save a dataset unless explicitly enabled.
+recording_enabled: false
+display_cameras_only: false
+opencv_preview: true

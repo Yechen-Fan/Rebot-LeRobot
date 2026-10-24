@@ -1,6 +1,6 @@
 dataset:
-  repo_id: yechen/bread
-  root: data/bread
+  repo_id: local/bi
+  root: data/bi
 
 policy:
   type: act
@@ -21,8 +21,8 @@ policy:
       type: VISUAL
       shape: [3, 480, 640]
 
-output_dir: outputs/act_bread
-job_name: act_bread
+output_dir: outputs/act_bi
+job_name: act_bi
 batch_size: 8
 steps: 100000
 save_freq: 10000

@@ -1,46 +1,197 @@
+# Dual-arm ACT visual-tactile inference; gripper actions follow model predictions.
+# c=start, s=stop, h=return to startup pose, Esc=exit.
+# Set recording_enabled=true to save inference episodes (s=stop and save).
+# Keep tactile pads unloaded during startup calibration.
 robot:
   type: bi_seeed_b601_dm_follower
-  left_port: /dev/serial/by-path/pci-0000:0b:00.3-usb-0:2.4:1.0
+  left_port: /dev/serial/by-path/pci-0000:0b:00.3-usb-0:2.2:1.0
   right_port: /dev/serial/by-path/pci-0000:0b:00.3-usb-0:2.1:1.0
   id: bi_rebot_b601_dm_flexitac
   can_adapter: damiao
   action_mode: cartesian
   control_mode: pos_vel
+  left_pos_vel_gains: &id001
+    shoulder_pan:
+    - 0.0125
+    - 0.004
+    - 150.0
+    - 0.5
+    shoulder_lift:
+    - 0.013
+    - 0.004
+    - 200.0
+    - 10.0
+    elbow_flex:
+    - 0.013
+    - 0.004
+    - 200.0
+    - 10.0
+    wrist_flex:
+    - 0.0032
+    - 0.002
+    - 50.0
+    - 1.0
+    wrist_yaw:
+    - 0.0008
+    - 0.004
+    - 50.0
+    - 1.0
+    wrist_roll:
+    - 0.0008
+    - 0.002
+    - 50.0
+    - 1.0
+    gripper:
+    - 0.0008
+    - 0.002
+    - 50.0
+    - 1.0
+  right_pos_vel_gains: *id001
   control_gripper: true
   enable_observation_joint_pos: true
   left_gripper_type: rebotarm_b601
   right_gripper_type: rebotarm_b601
-  flexitac_left_inner_port: /dev/serial/by-id/REPLACE_FLEXITAC_LEFT_INNER
-  flexitac_left_outer_port: /dev/serial/by-id/REPLACE_FLEXITAC_LEFT_OUTER
-  flexitac_right_inner_port: /dev/serial/by-id/REPLACE_FLEXITAC_RIGHT_INNER
-  flexitac_right_outer_port: /dev/serial/by-id/REPLACE_FLEXITAC_RIGHT_OUTER
+  rt_rate: 100.0
+  flexitac_left_inner_port: /dev/serial/by-id/usb-FTDI_FT232R_USB_UART_AB0L9KZJ-if00-port0
+  flexitac_left_outer_port: /dev/serial/by-id/usb-FTDI_FT232R_USB_UART_AB0LS5C8-if00-port0
+  flexitac_right_inner_port: /dev/serial/by-id/usb-FTDI_FT232R_USB_UART_AB0L9AYV-if00-port0
+  flexitac_right_outer_port: /dev/serial/by-id/usb-FTDI_FT232R_USB_UART_AB0LSK5O-if00-port0
+  flexitac_auto_zero: true
   flexitac_calibration_mean_min: 0.0
   flexitac_calibration_mean_max: 200.0
   cameras:
-    global: {type: opencv, index_or_path: 4, width: 640, height: 480, fps: 30, fourcc: MJPG}
-    left_wrist: {type: opencv, index_or_path: 8, width: 640, height: 480, fps: 30, fourcc: MJPG}
-    right_wrist: {type: opencv, index_or_path: 6, width: 640, height: 480, fps: 30, fourcc: MJPG}
-
+    global:
+      type: opencv
+      index_or_path: 4
+      width: 640
+      height: 480
+      fps: 30
+      fourcc: YUYV
+    left_wrist:
+      type: opencv
+      index_or_path: 8
+      width: 640
+      height: 480
+      fps: 30
+      fourcc: MJPG
+    right_wrist:
+      type: opencv
+      index_or_path: 6
+      width: 640
+      height: 480
+      fps: 30
+      fourcc: MJPG
+# The rate/task remain active; dataset files are written only with recording_enabled=true.
 dataset:
-  repo_id: yechen/eval_b601_flexitac_act
-  root: data/eval_b601_flexitac_act
-  single_task: Replace with the task description.
+  repo_id: local/eval_act_bi_flexitac
+  root: outputs/eval_act_bi_flexitac
+  single_task: Dual-arm manipulation demonstration with tactile sensing.
   num_episodes: 10
   fps: 30
   video: true
   vcodec: h264
   push_to_hub: false
   streaming_encoding: true
-
+  num_image_writer_processes: 0
+  num_image_writer_threads_per_camera: 4
+  video_encoding_batch_size: 1
 policy:
   type: act
-  pretrained_path: outputs/act_b601_flexitac/checkpoints/last/pretrained_model
+  n_obs_steps: 1
+  input_features:
+    observation.state:
+      type: STATE
+      shape:
+      - 32
+    observation.images.global:
+      type: VISUAL
+      shape:
+      - 3
+      - 480
+      - 640
+    observation.images.left_wrist:
+      type: VISUAL
+      shape:
+      - 3
+      - 480
+      - 640
+    observation.images.right_wrist:
+      type: VISUAL
+      shape:
+      - 3
+      - 480
+      - 640
+    observation.tactile.left_inner:
+      type: TACTILE
+      shape:
+      - 16
+      - 32
+    observation.tactile.left_outer:
+      type: TACTILE
+      shape:
+      - 16
+      - 32
+    observation.tactile.right_inner:
+      type: TACTILE
+      shape:
+      - 16
+      - 32
+    observation.tactile.right_outer:
+      type: TACTILE
+      shape:
+      - 16
+      - 32
+  output_features:
+    action:
+      type: ACTION
+      shape:
+      - 20
   device: cuda
-
+  use_amp: false
+  use_peft: false
+  push_to_hub: false
+  repo_id: null
+  private: null
+  tags: null
+  license: null
+  pretrained_path: outputs/act_bi_flexitac/checkpoints/last/pretrained_model
+  chunk_size: 100
+  n_action_steps: 1
+  normalization_mapping:
+    VISUAL: MEAN_STD
+    TACTILE: IDENTITY
+    STATE: MEAN_STD
+    ACTION: MEAN_STD
+  vision_backbone: resnet18
+  pretrained_backbone_weights: null
+  replace_final_stride_with_dilation: false
+  tactile_baseline: 0.0
+  tactile_scale: 255.0
+  pre_norm: false
+  dim_model: 512
+  n_heads: 8
+  dim_feedforward: 3200
+  feedforward_activation: relu
+  n_encoder_layers: 4
+  n_decoder_layers: 1
+  use_vae: true
+  latent_dim: 32
+  n_vae_encoder_layers: 4
+  temporal_ensemble_coeff: 0.01
+  dropout: 0.1
+  kl_weight: 10.0
+  optimizer_lr: 1.0e-05
+  optimizer_weight_decay: 0.0001
+  optimizer_lr_backbone: 1.0e-05
+policy_motion:
+  max_joint_velocity: 45.0
+  max_joint_acceleration: 180.0
+  max_gripper_velocity: 180.0
+  max_gripper_acceleration: 720.0
 display_data: false
+recording_enabled: false
+display_cameras_only: false
+opencv_preview: true
 play_sounds: false
 resume: false
 manual_episode_control: true
-
-# Inference does not save a dataset unless explicitly enabled.
-recording_enabled: false

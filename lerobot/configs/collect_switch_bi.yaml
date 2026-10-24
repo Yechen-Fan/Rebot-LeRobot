@@ -54,8 +54,8 @@ teleop:
   right_device: right
 
 dataset:
-  repo_id: yechen/bread
-  root: data/bread
+  repo_id: local/bi
+  root: data/bi
   # Replace with the specific task performed in these demonstrations.
   single_task: Dual-arm manipulation demonstration.
   num_episodes: 20
@@ -69,9 +69,9 @@ dataset:
   video_encoding_batch_size: 1
   push_to_hub: false
 
-display_data: true
-display_cameras_only: true
+display_data: false
+display_cameras_only: false
 play_sounds: false
 resume: false
 manual_episode_control: true
-
+opencv_preview: true

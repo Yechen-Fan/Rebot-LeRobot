@@ -22,8 +22,8 @@ robot:
     right_wrist: {type: opencv, index_or_path: 6, width: 640, height: 480, fps: 30, fourcc: MJPG}
 
 dataset:
-  repo_id: yechen/eval_b601_flexitac_diffusion
-  root: data/eval_b601_flexitac_diffusion
+  repo_id: local/eval_diffusion_bi_flexitac
+  root: outputs/eval_diffusion_bi_flexitac
   single_task: Replace with the task description.
   num_episodes: 10
   fps: 30
@@ -34,7 +34,7 @@ dataset:
 
 policy:
   type: diffusion
-  pretrained_path: outputs/diffusion_b601_flexitac/checkpoints/last/pretrained_model
+  pretrained_path: outputs/diffusion_bi_flexitac/checkpoints/last/pretrained_model
   device: cuda
 
 display_data: false
@@ -44,3 +44,5 @@ manual_episode_control: true
 
 # Inference does not save a dataset unless explicitly enabled.
 recording_enabled: false
+display_cameras_only: false
+opencv_preview: true

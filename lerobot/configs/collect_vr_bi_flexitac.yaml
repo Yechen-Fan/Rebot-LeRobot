@@ -27,8 +27,8 @@ teleop:
   id: bi_quest3
 
 dataset:
-  repo_id: yechen/b601-bi-flexitac
-  root: data/b601_bi_flexitac
+  repo_id: local/bi_vr_flexitac
+  root: data/bi_vr_flexitac
   single_task: Replace with the task description.
   num_episodes: 20
   fps: 30
@@ -42,3 +42,4 @@ opencv_preview: true
 play_sounds: false
 resume: false
 manual_episode_control: true
+display_cameras_only: false

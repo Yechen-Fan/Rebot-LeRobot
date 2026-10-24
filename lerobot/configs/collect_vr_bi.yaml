@@ -38,9 +38,9 @@ teleop:
   id: bi_quest3
 
 dataset:
-  repo_id: yechen/b601-bi-quest3-demo
-  root: data/bread_joint_new
-  single_task: Pick bread from the toaster with both arms; place the left bread on the orange plate and the right bread on the purple plate.
+  repo_id: local/bi_vr_joint
+  root: data/bi_vr_joint
+  single_task: Dual-arm manipulation demonstration.
   num_episodes: 20
   fps: 30
   video: true
@@ -56,3 +56,5 @@ display_data: false
 play_sounds: false
 resume: false
 manual_episode_control: true
+display_cameras_only: false
+opencv_preview: true

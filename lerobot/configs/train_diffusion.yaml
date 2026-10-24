@@ -1,0 +1,31 @@
+# Dual-arm RGB + robot state only; no tactile inputs.
+dataset:
+  repo_id: local/bi
+  root: data/bi
+
+policy:
+  type: diffusion
+  device: cuda
+  push_to_hub: false
+  # Use the three cameras and robot state only; no tactile inputs.
+  input_features:
+    observation.state:
+      type: STATE
+      shape: [32]
+    observation.images.global:
+      type: VISUAL
+      shape: [3, 480, 640]
+    observation.images.left_wrist:
+      type: VISUAL
+      shape: [3, 480, 640]
+    observation.images.right_wrist:
+      type: VISUAL
+      shape: [3, 480, 640]
+
+output_dir: outputs/diffusion_bi
+job_name: diffusion_bi
+batch_size: 8
+steps: 100000
+save_freq: 10000
+log_freq: 100
+num_workers: 4

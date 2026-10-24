@@ -29,4 +29,4 @@ teleop:
   right_device: right
 
 fps: 100
-display_data: true
+display_data: false

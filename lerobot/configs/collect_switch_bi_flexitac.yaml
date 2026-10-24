@@ -46,8 +46,8 @@ teleop:
   right_device: right
 
 dataset:
-  repo_id: yechen/b601-bi-flexitac-auto-zero
-  root: data/egg_auto_zero
+  repo_id: local/bi_flexitac
+  root: data/bi_flexitac
   single_task: Dual-arm manipulation demonstration with tactile sensing.
   num_episodes: 20
   fps: 30
