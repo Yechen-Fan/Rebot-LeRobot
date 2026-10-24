@@ -1,11 +1,11 @@
 <div align="center">
-  <h1>Rebot_LeRobot</h1>
+  <h1>Rebot-LeRobot</h1>
   <p>B601 DM single-arm and bimanual robot learning with LeRobot</p>
 </div>
 
 # 📖 Introduction
 
-**Rebot_LeRobot** integrates the **reBot Arm B601 DM**, **Quest 3**, **Nintendo Switch Joy-Con**, and **FlexiTac** into a practical workflow for real-world robot learning.
+**Rebot-LeRobot** integrates the **reBot Arm B601 DM**, **Quest 3**, **Nintendo Switch Joy-Con**, and **FlexiTac** into a practical workflow for real-world robot learning.
 
 The project follows the LeRobot command-line workflow, from teleoperation and demonstration collection to policy training and real-world inference:
 
@@ -32,7 +32,7 @@ The project follows the LeRobot command-line workflow, from teleoperation and de
 Activate your Python environment, then run:
 
 ```bash
-cd Rebot_LeRobot
+cd Rebot-LeRobot
 bash scripts/install_rebot.sh
 ```
 
@@ -223,7 +223,7 @@ lerobot-record --config_path=lerobot/configs/eval_act_bi_flexitac.yaml \
 # 🗂️ Project Structure
 
 ```text
-Rebot_LeRobot/
+Rebot-LeRobot/
 ├── README.md
 ├── hardware/                       # STEP CAD models for mechanical parts
 │   ├── D415_Adjustable_Camera_Mount.step
